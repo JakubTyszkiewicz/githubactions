@@ -23,9 +23,13 @@ jobs:
           SHORT_SHA=${GITHUB_SHA::7}
           # repo name (strip owner/ from owner/repo)
           REPO_NAME=${GITHUB_REPOSITORY#*/}
+          # repo owner and lowercase it for registry tags (ghcr requires lowercase names)
+          REPO_OWNER=${GITHUB_REPOSITORY%%/*}
+          REPO_OWNER_LOWER=$(echo "$REPO_OWNER" | tr '[:upper:]' '[:lower:]')
           echo "branch_safe=$BRANCH_SAFE" >> $GITHUB_OUTPUT
           echo "short_sha=$SHORT_SHA" >> $GITHUB_OUTPUT
           echo "repo_name=$REPO_NAME" >> $GITHUB_OUTPUT
+          echo "repo_owner_lower=$REPO_OWNER_LOWER" >> $GITHUB_OUTPUT
 
       - name: Set up QEMU (for multi-arch builds)
         uses: docker/setup-qemu-action@v2
@@ -50,13 +54,13 @@ jobs:
           push: ${{ github.ref == 'refs/heads/main' }}
           load: true
           tags: |
-            ghcr.io/JakubTyszkiewicz/${{ steps.vars.outputs.repo_name }}:${{ steps.vars.outputs.branch_safe }}
-            ghcr.io/JakubTyszkiewicz/${{ steps.vars.outputs.repo_name }}:${{ steps.vars.outputs.short_sha }}
-            ghcr.io/JakubTyszkiewicz/${{ steps.vars.outputs.repo_name }}:latest
+            ghcr.io/${{ steps.vars.outputs.repo_owner_lower }}/${{ steps.vars.outputs.repo_name }}:${{ steps.vars.outputs.branch_safe }}
+            ghcr.io/${{ steps.vars.outputs.repo_owner_lower }}/${{ steps.vars.outputs.repo_name }}:${{ steps.vars.outputs.short_sha }}
+            ghcr.io/${{ steps.vars.outputs.repo_owner_lower }}/${{ steps.vars.outputs.repo_name }}:latest
 
       - name: Start container (from pushed image)
         run: |
-          IMAGE=ghcr.io/JakubTyszkiewicz/${{ steps.vars.outputs.repo_name }}:${{ steps.vars.outputs.short_sha }}
+          IMAGE=ghcr.io/${{ steps.vars.outputs.repo_owner_lower }}/${{ steps.vars.outputs.repo_name }}:${{ steps.vars.outputs.short_sha }}
           echo "Running image $IMAGE"
           docker run -d --name gh-ci-nginx -p 8080:80 $IMAGE
           sleep 2
