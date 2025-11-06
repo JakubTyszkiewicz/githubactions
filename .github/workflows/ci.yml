@@ -1,0 +1,49 @@
+name: CI - build & smoke test
+
+on:
+  workflow_dispatch: {}
+
+jobs:
+  build-and-smoke-test:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU (for multi-arch builds)
+        uses: docker/setup-qemu-action@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      # Build the image and load it into the runner's Docker daemon so we can run it
+      - name: Build Docker image (load into runner)
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          file: Dockerfile
+          push: false
+          load: true
+          tags: hello-world-nginx:v1
+
+      - name: Start container
+        run: |
+          # run detached and map port 8080 on the runner to container 80
+          docker run -d --name gh-ci-nginx -p 8080:80 hello-world-nginx:v1
+          # give nginx a second to start
+          sleep 2
+
+      - name: Smoke test (HTTP)
+        run: |
+          # fail the step if HTTP check fails; if it fails, print container logs to help debugging
+          if ! curl -sS --fail http://localhost:8080; then
+            echo "--- container logs ---"
+            docker logs gh-ci-nginx || true
+            exit 1
+          fi
+
+      - name: Cleanup
+        if: always()
+        run: |
+          docker rm -f gh-ci-nginx || true
+
