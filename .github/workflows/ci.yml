@@ -17,8 +17,11 @@ jobs:
           BRANCH_NAME=${GITHUB_REF#refs/heads/}
           BRANCH_SAFE=${BRANCH_NAME//\//-}
           SHORT_SHA=${GITHUB_SHA::7}
+          # repo name (strip owner/ from owner/repo)
+          REPO_NAME=${GITHUB_REPOSITORY#*/}
           echo "branch_safe=$BRANCH_SAFE" >> $GITHUB_OUTPUT
           echo "short_sha=$SHORT_SHA" >> $GITHUB_OUTPUT
+          echo "repo_name=$REPO_NAME" >> $GITHUB_OUTPUT
 
       - name: Set up QEMU (for multi-arch builds)
         uses: docker/setup-qemu-action@v2
@@ -42,13 +45,13 @@ jobs:
           push: true
           load: true
           tags: |
-            ghcr.io/${{ github.repository }}:${{ steps.vars.outputs.branch_safe }}
-            ghcr.io/${{ github.repository }}:${{ steps.vars.outputs.short_sha }}
-            ghcr.io/${{ github.repository }}:latest
+            ghcr.io/JakubTyszkiewicz/${{ steps.vars.outputs.repo_name }}:${{ steps.vars.outputs.branch_safe }}
+            ghcr.io/JakubTyszkiewicz/${{ steps.vars.outputs.repo_name }}:${{ steps.vars.outputs.short_sha }}
+            ghcr.io/JakubTyszkiewicz/${{ steps.vars.outputs.repo_name }}:latest
 
       - name: Start container (from pushed image)
         run: |
-          IMAGE=ghcr.io/${GITHUB_REPOSITORY}:${{ steps.vars.outputs.short_sha }}
+          IMAGE=ghcr.io/JakubTyszkiewicz/${{ steps.vars.outputs.repo_name }}:${{ steps.vars.outputs.short_sha }}
           echo "Running image $IMAGE"
           docker run -d --name gh-ci-nginx -p 8080:80 $IMAGE
           sleep 2
