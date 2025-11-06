@@ -3,9 +3,13 @@ name: CI - build & smoke test
 on:
   workflow_dispatch: {}
 
+permissions:
+  contents: read
+  packages: write
+
 jobs:
   build-and-smoke-test:
-    runs-on: self-hosted
+    runs-on: ubuntu-24.04
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
@@ -42,7 +46,8 @@ jobs:
         with:
           context: .
           file: Dockerfile
-          push: true
+          # push only when running on the main branch; other branches will load image into runner
+          push: ${{ github.ref == 'refs/heads/main' }}
           load: true
           tags: |
             ghcr.io/JakubTyszkiewicz/${{ steps.vars.outputs.repo_name }}:${{ steps.vars.outputs.branch_safe }}
